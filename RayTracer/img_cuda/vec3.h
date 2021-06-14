@@ -14,7 +14,7 @@ namespace rayUtilities {
 		__host__ __device__ inline float const& operator[](int i) const { /*assert(i >= 0 && i < 3);*/ return e[i]; }
 		__host__ __device__ inline float& operator[](int i) { /*assert(i >= 0 && i < 3);*/ return e[i]; }
 
-		__host__ __device__ Vec3 operator-() const { return Vec3(-e[0], -e[0], -e[0]); }
+		__host__ __device__ Vec3 operator-() const { return Vec3(-e[0], -e[1], -e[2]); }
 		__host__ __device__ Vec3& operator+=(const Vec3& v) {
 			e[0] += v[0];
 			e[1] += v[1];
