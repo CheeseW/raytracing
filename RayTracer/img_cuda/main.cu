@@ -13,9 +13,27 @@ void check_cuda(cudaError_t result, char const* const func, const char* const fi
 	}
 }
 
+__device__ bool hit_sphere(const rayUtilities::Ray& r) {
+    using namespace rayUtilities;
+    const Point3 center(0, 0, -1);
+    const float radius = .5;
+
+    // Compute distance from center to ray
+    const Vec3 oc = center - r.origin();
+    const auto& d = r.direction();
+
+    double a = d.dot(d);
+    double b = -2 * d.dot(oc);
+    double c = oc.dot(oc) - radius * radius;
+    double discriminant = b * b - 4 * a * c;
+    return discriminant >= 0;
+
+}
 
 __device__ rayUtilities::Color ray_color(const rayUtilities::Ray& r) {
     using namespace rayUtilities;
+    if (hit_sphere(r))
+        return Color(1, 0, 0);
     Vec3 d = r.direction().normalized();
     auto t = .5f * (d[1] + 1.f);
     const Color top{ .5,.7,1 };
@@ -67,7 +85,6 @@ __global__ void render(rayUtilities::Color* fb, int max_x, int max_y, const rayU
 #endif
 
 int main(int argc, char* argv[]) {
-#if 1
     using namespace rayUtilities;
 
     cudaEvent_t start, stop;
@@ -88,7 +105,7 @@ int main(int argc, char* argv[]) {
     const Vec3 horizontal = Vec3(viewport_width, 0, 0);
     const Vec3 vertical = Vec3(0, viewport_height, 0);
     const Point3 lowerLeft = origin - (horizontal + vertical) / 2 - Vec3(0, 0, focal_length);
-
+#if 1
     Color* fb;
    checkCudaErrors(cudaMallocManaged((void**)&fb, image_width*image_height*sizeof(Color)));
 
