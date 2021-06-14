@@ -1,8 +1,9 @@
 #include <iostream>
 #include <fstream>
-#include "vec3.h"
-#include "ray.h"
-
+//#include "vec3.h"
+//#include "ray.h"
+#include "hittable_list.h"
+#include "sphere.h"
 
 #define checkCudaErrors(val) check_cuda( (val), #val, __FILE__, __LINE__ )
 void check_cuda(cudaError_t result, char const* const func, const char* const file, int const line) {
@@ -13,34 +14,27 @@ void check_cuda(cudaError_t result, char const* const func, const char* const fi
 	}
 }
 
-__device__ bool hit_sphere(const rayUtilities::Ray& r) {
+__global__ void create_world(rayUtilities::Hittable** d_list, rayUtilities::Hittable** d_world ) {
     using namespace rayUtilities;
-    const Point3 center(0, 0, -1);
-    const float radius = .5;
 
-    // Compute distance from center to ray
-    const Vec3 oc = center - r.origin();
-    const auto& d = r.direction();
-
-    double a = d.dot(d);
-    double b = -2 * d.dot(oc);
-    double c = oc.dot(oc) - radius * radius;
-    double discriminant = b * b - 4 * a * c;
-    return discriminant >= 0;
-
+    if (threadIdx.x == 0 && blockIdx.x == 0) {
+        *(d_list) = new Sphere(Vec3(0, 0, -1), 0.5);
+        *(d_list + 1) = new Sphere(Vec3(0, -100.5, -1), 100);
+        *d_world = new HittableList(d_list, 2);
+    }
 }
 
-__device__ rayUtilities::Color ray_color(const rayUtilities::Ray& r) {
+__device__ rayUtilities::Color ray_color(const rayUtilities::Ray& r, const rayUtilities::Hittable* world) {
     using namespace rayUtilities;
-    if (hit_sphere(r))
-        return Color(1, 0, 0);
+
+    HitRecord rec;
+    if (world->hit(r, 0, FLT_MAX, rec)) return 0.5f*(rec.normal+Vec3(1,1,1));
     Vec3 d = r.direction().normalized();
     auto t = .5f * (d[1] + 1.f);
     const Color top{ .5,.7,1 };
     const Color bottom{ 1,1,1 };
     return t* top + (1.f - t) * bottom;
 }
-#if 1
 
 void write_image(const std::string filename, const rayUtilities::Color* fb, const int width, const int height) {
     using namespace rayUtilities;
@@ -62,9 +56,7 @@ void write_image(const std::string filename, const rayUtilities::Color* fb, cons
     std::cout << "Done writing "<<filename << std::endl;
 }
 
-#endif
-#if 1
-__global__ void render(rayUtilities::Color* fb, int max_x, int max_y, const rayUtilities::Point3 lowerLeft, const rayUtilities::Vec3 horizontal, const rayUtilities::Vec3 vertical, const rayUtilities::Vec3 origin) {
+__global__ void render(rayUtilities::Color* fb, const rayUtilities::Hittable*const* world, int max_x, int max_y, const rayUtilities::Point3 lowerLeft, const rayUtilities::Vec3 horizontal, const rayUtilities::Vec3 vertical, const rayUtilities::Vec3 origin) {
     using namespace rayUtilities;
 
     int i = threadIdx.x + blockIdx.x * blockDim.x;
@@ -77,14 +69,13 @@ __global__ void render(rayUtilities::Color* fb, int max_x, int max_y, const rayU
 
         int idx = max_x * j + i;
 
-        fb[idx] = ray_color(ray);
-       
+        fb[idx] = ray_color(ray, *world);
     }
         
 }
-#endif
 
 int main(int argc, char* argv[]) {
+
     using namespace rayUtilities;
 
     cudaEvent_t start, stop;
@@ -105,9 +96,19 @@ int main(int argc, char* argv[]) {
     const Vec3 horizontal = Vec3(viewport_width, 0, 0);
     const Vec3 vertical = Vec3(0, viewport_height, 0);
     const Point3 lowerLeft = origin - (horizontal + vertical) / 2 - Vec3(0, 0, focal_length);
-#if 1
+
+    // world
+    Hittable** d_list;
+    checkCudaErrors(cudaMalloc((void**)&d_list, 3 * sizeof(Hittable*)));
+    Hittable** d_world = d_list+2;
+    create_world<<<1,1>>>(d_list, d_world);
+    checkCudaErrors(cudaGetLastError());
+    checkCudaErrors(cudaDeviceSynchronize());
+
+
     Color* fb;
    checkCudaErrors(cudaMallocManaged((void**)&fb, image_width*image_height*sizeof(Color)));
+
 
    const int tx = 8;
    const int ty = 8;
@@ -115,7 +116,7 @@ int main(int argc, char* argv[]) {
    dim3 threads(tx, ty);
 
    cudaEventRecord(start);
-   render << <blocks, threads >> > (fb, image_width, image_height, lowerLeft, horizontal, vertical, origin);
+   render << <blocks, threads >> > (fb, d_world, image_width, image_height, lowerLeft, horizontal, vertical, origin);
    cudaEventRecord(stop);
 
    checkCudaErrors(cudaGetLastError());
@@ -129,6 +130,5 @@ int main(int argc, char* argv[]) {
    write_image("image.ppm", fb, image_width, image_height);
   
    checkCudaErrors(cudaFree(fb));
-#endif
    return 0;
 }

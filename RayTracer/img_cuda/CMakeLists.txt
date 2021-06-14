@@ -1,5 +1,5 @@
 set(EXE_NAME cuda_test)
-add_executable(${EXE_NAME} main.cu "ray.h" "vec3.h")
+add_executable(${EXE_NAME} main.cu "ray.h" "vec3.h" "hittable.h" "sphere.h" "hittable_list.h")
 
 target_include_directories(${EXE_NAME}
 	PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
