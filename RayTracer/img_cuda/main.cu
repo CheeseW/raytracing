@@ -5,6 +5,18 @@
 #include "hittable_list.h"
 #include "sphere.h"
 
+#include <curand_kernel.h>
+
+__global__ void render_init(const int max_x, const int max_y, curandState *rand_state) {
+    int i = threadIdx.x + blockIdx.x * blockDim.x;
+    int j = threadIdx.y + blockIdx.y * blockDim.y;
+
+    if (i < max_x && j < max_y) {
+        int idx = j * max_x + i;
+        curand_init(1984, idx, 0, &rand_state[idx]);
+    }
+}
+
 #define checkCudaErrors(val) check_cuda( (val), #val, __FILE__, __LINE__ )
 void check_cuda(cudaError_t result, char const* const func, const char* const file, int const line) {
 	if (result) {
@@ -56,25 +68,32 @@ void write_image(const std::string filename, const rayUtilities::Color* fb, cons
     std::cout << "Done writing "<<filename << std::endl;
 }
 
-__global__ void render(rayUtilities::Color* fb, const rayUtilities::Hittable*const* world, int max_x, int max_y, const rayUtilities::Point3 lowerLeft, const rayUtilities::Vec3 horizontal, const rayUtilities::Vec3 vertical, const rayUtilities::Vec3 origin) {
+__global__ void render(rayUtilities::Color* fb, const rayUtilities::Hittable*const* world, int nSamples, int max_x, int max_y, const rayUtilities::Point3 lowerLeft, const rayUtilities::Vec3 horizontal, const rayUtilities::Vec3 vertical, const rayUtilities::Vec3 origin, curandState* randState) {
     using namespace rayUtilities;
 
     int i = threadIdx.x + blockIdx.x * blockDim.x;
     int j = threadIdx.y + blockIdx.y * blockDim.y;
 
+
     if (i < max_x && j < max_y) {
-        const float u = float(i) / max_x;
-        const float v = float(j) / max_y;
-        const Ray ray(origin, lowerLeft + u * horizontal + v * vertical - origin);
-
         int idx = max_x * j + i;
+       Color color(0, 0, 0);
+        curandState localState = randState[idx];
+        for (int s = 0; s < nSamples; s++) {
+            const float u = (float(i)  + curand_uniform(&localState)) / max_x;
+            const float v = (float(j) + curand_uniform(&localState)) / max_y;
+            const Ray ray(origin, lowerLeft + u * horizontal + v * vertical - origin);
 
-        fb[idx] = ray_color(ray, *world);
+            color += ray_color(ray, *world);
+        }
+        fb[idx] = color / float(nSamples);
     }
         
 }
 
 int main(int argc, char* argv[]) {
+
+
 
     using namespace rayUtilities;
 
@@ -97,6 +116,21 @@ int main(int argc, char* argv[]) {
     const Vec3 vertical = Vec3(0, viewport_height, 0);
     const Point3 lowerLeft = origin - (horizontal + vertical) / 2 - Vec3(0, 0, focal_length);
 
+    // init randStates
+
+    const int tx = 8;
+    const int ty = 8;
+    dim3 blocks((image_width + tx - 1) / tx, (image_height + ty - 1) / ty);
+    dim3 threads(tx, ty);
+
+    curandState* d_randState;
+    checkCudaErrors(cudaMalloc((void**)&d_randState, image_width * image_height * sizeof(curandState)));
+
+    render_init << <blocks, threads >> > (image_width, image_height, d_randState);
+    checkCudaErrors(cudaGetLastError());
+    checkCudaErrors(cudaDeviceSynchronize());
+#if 1
+
     // world
     Hittable** d_list;
     checkCudaErrors(cudaMalloc((void**)&d_list, 3 * sizeof(Hittable*)));
@@ -105,18 +139,15 @@ int main(int argc, char* argv[]) {
     checkCudaErrors(cudaGetLastError());
     checkCudaErrors(cudaDeviceSynchronize());
 
+    
 
     Color* fb;
    checkCudaErrors(cudaMallocManaged((void**)&fb, image_width*image_height*sizeof(Color)));
 
-
-   const int tx = 8;
-   const int ty = 8;
-   dim3 blocks((image_width + tx - 1) / tx, (image_height + ty - 1) / ty);
-   dim3 threads(tx, ty);
+   const int nSamples = 100;
 
    cudaEventRecord(start);
-   render << <blocks, threads >> > (fb, d_world, image_width, image_height, lowerLeft, horizontal, vertical, origin);
+   render << <blocks, threads >> > (fb, d_world, nSamples, image_width, image_height, lowerLeft, horizontal, vertical, origin, d_randState);
    cudaEventRecord(stop);
 
    checkCudaErrors(cudaGetLastError());
@@ -130,5 +161,6 @@ int main(int argc, char* argv[]) {
    write_image("image.ppm", fb, image_width, image_height);
   
    checkCudaErrors(cudaFree(fb));
+#endif
    return 0;
 }
