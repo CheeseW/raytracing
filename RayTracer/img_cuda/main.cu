@@ -5,6 +5,8 @@
 #include "hittable_list.h"
 #include "sphere.h"
 
+#include "utilities.h"
+
 #include <curand_kernel.h>
 
 __global__ void render_init(const int max_x, const int max_y, curandState *rand_state) {
@@ -36,16 +38,29 @@ __global__ void create_world(rayUtilities::Hittable** d_list, rayUtilities::Hitt
     }
 }
 
-__device__ rayUtilities::Color ray_color(const rayUtilities::Ray& r, const rayUtilities::Hittable* world) {
+__device__ rayUtilities::Color ray_color(const rayUtilities::Ray& ray, const rayUtilities::Hittable* world, curandState& randState) {
     using namespace rayUtilities;
-
+    const int maxIter = 50;
+    const float attenRate = .5;
+    const float thresh = 0.001;
+    Ray r = ray;
+    float att = 1.f;
     HitRecord rec;
-    if (world->hit(r, 0, FLT_MAX, rec)) return 0.5f*(rec.normal+Vec3(1,1,1));
-    Vec3 d = r.direction().normalized();
-    auto t = .5f * (d[1] + 1.f);
-    const Color top{ .5,.7,1 };
-    const Color bottom{ 1,1,1 };
-    return t* top + (1.f - t) * bottom;
+
+    for (int i = 0; i < maxIter; i++) {
+        if (world->hit(r, thresh, FLT_MAX, rec)) {
+            r = Ray(rec.p, rec.normal + radomInUnitSphere(randState));
+            att *= attenRate;
+        }
+        else {
+            Vec3 d = r.direction().normalized();
+            auto t = .5f * (d[1] + 1.f);
+            const Color top{ .5,.7,1 };
+            const Color bottom{ 1,1,1 };
+            return (t * top + (1.f - t) * bottom) * att;
+        }
+    }
+    return Vec3(0,0,0);
 }
 
 void write_image(const std::string filename, const rayUtilities::Color* fb, const int width, const int height) {
@@ -74,7 +89,6 @@ __global__ void render(rayUtilities::Color* fb, const rayUtilities::Hittable*con
     int i = threadIdx.x + blockIdx.x * blockDim.x;
     int j = threadIdx.y + blockIdx.y * blockDim.y;
 
-
     if (i < max_x && j < max_y) {
         int idx = max_x * j + i;
        Color color(0, 0, 0);
@@ -84,7 +98,7 @@ __global__ void render(rayUtilities::Color* fb, const rayUtilities::Hittable*con
             const float v = (float(j) + curand_uniform(&localState)) / max_y;
             const Ray ray(origin, lowerLeft + u * horizontal + v * vertical - origin);
 
-            color += ray_color(ray, *world);
+            color += ray_color(ray, *world, localState);
         }
         fb[idx] = color / float(nSamples);
     }
@@ -92,8 +106,6 @@ __global__ void render(rayUtilities::Color* fb, const rayUtilities::Hittable*con
 }
 
 int main(int argc, char* argv[]) {
-
-
 
     using namespace rayUtilities;
 
