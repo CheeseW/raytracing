@@ -73,9 +73,10 @@ void write_image(const std::string filename, const rayUtilities::Color* fb, cons
     for (int j = height - 1; j >= 0; --j) 
         for (int i = 0; i < width; ++i) {
             int idx = j * width + i;
-            int ir = static_cast<int>(255.999 * fb[idx][0]);
-            int ig = static_cast<int>(255.999 * fb[idx][1]);
-            int ib = static_cast<int>(255.999 * fb[idx][2]);
+            // with gamma correction of gamma = 2
+            int ir = static_cast<int>(255.999 * sqrt(fb[idx][0]));
+            int ig = static_cast<int>(255.999 * sqrt(fb[idx][1]));
+            int ib = static_cast<int>(255.999 * sqrt(fb[idx][2]));
 
             imgWritter << ir << ' ' << ig << ' ' << ib << std::endl;
         }
