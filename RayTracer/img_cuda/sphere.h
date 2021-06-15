@@ -40,8 +40,8 @@ namespace rayUtilities {
 		rec.t = t;
 		rec.p = r.at(t);
 
-		 rec.normal = (rec.p - center)/radius;
-		// rec.setFaceNormal(r, normal);
+		Vec3 normal = (rec.p - center)/radius;
+		rec.setFaceNormal(r, normal);
 		return true;
 	}
 }
