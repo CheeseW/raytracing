@@ -6,10 +6,10 @@
 namespace rayUtilities {
 	class Camera {
 	public:
-		Camera() {
-			const auto aspectRatio = 16. / 9.;
+		Camera(const int width, const int height) {
+			// const auto aspectRatio = float(width) / height;
 			const auto viewportHeight = 2.;
-			const auto viewportWidth = aspectRatio * viewportHeight;
+			const auto viewportWidth = viewportHeight / height * width;
 			auto focal_length = 1.;
 
 			origin = { 0,0,0 };
@@ -17,10 +17,13 @@ namespace rayUtilities {
 			vertical = { 0, viewportHeight, 0 };
 
 			lowerLeft = origin - horizontal / 2 - vertical / 2 - rayUtilities::Vec3(0, 0, focal_length);
+
+			horizontal /= width;
+			vertical /= height;
 		}
 
-		Ray getRay(const double u, const double v) const {
-			return Ray(origin, lowerLeft + u * horizontal + v * vertical - origin);
+		inline Ray getRay(const int u, const int v) const {
+			return Ray(origin, lowerLeft + (u + rayUtilities::randomDouble()) * horizontal + (v + rayUtilities::randomDouble()) * vertical - origin);
 		}
 
 	private:

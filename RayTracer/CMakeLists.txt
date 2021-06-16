@@ -10,5 +10,5 @@ project (RayTracer VERSION 0.1
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 add_subdirectory(gui)
-add_subdirectory(img)
 add_subdirectory(img_cuda)
+add_subdirectory(rayTracingLib)
