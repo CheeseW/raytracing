@@ -7,18 +7,16 @@
 // #include "Vec3.h"
 
 namespace rayUtilities {
-	__device__ Vec3 randomVec(curandState& randState) {
+	__device__ inline Vec3 randomVec(curandState& randState) {
 		return Vec3(curand_uniform(&randState), curand_uniform(&randState), curand_uniform(&randState));
 	}
 
-	__device__ Vec3 randomVec(const float min, const float max, curandState& randState) {
+	__device__ inline Vec3 randomVec(const float min, const float max, curandState& randState) {
 		const Vec3 allOne(1, 1, 1);
 		return randomVec(randState) * (max - min) + min * allOne;
 	}
 
-
-
-	__device__ Vec3 radomInUnitSphere(curandState& randState) {
+	__device__ inline Vec3 radomInUnitSphere(curandState& randState) {
 		while (true) {
 			const auto p = randomVec(-1, 1, randState);
 			if (p.dot(p) < 1)
@@ -26,7 +24,9 @@ namespace rayUtilities {
 		}
 	}
 
-	
+	__device__ inline float randomFloat(curandState& randState) {
+		return curand_uniform(&randState);
+	}
 
 #if 0
 
