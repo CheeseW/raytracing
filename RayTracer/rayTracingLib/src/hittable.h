@@ -1,12 +1,18 @@
 #pragma once
 
 #include "ray.h"
+#include <memory>
+
 namespace rayUtilities {
+	class Material;
+
 	struct HitRecord {
 		Point3 p;
 		Vec3 normal;
 		double t;
 		bool frontFace;
+
+		std::shared_ptr<Material> matPtr;
 
 		inline void setFaceNormal(const Ray& r, const Vec3& outwardNormal) {
 			frontFace = r.direction().dot(outwardNormal) <= 0;

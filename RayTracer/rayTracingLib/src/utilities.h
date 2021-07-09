@@ -22,12 +22,24 @@ namespace rayUtilities {
 		return (Vec3::Random() + allOne) / 2. * (max - min) + min * allOne;
 	}
 
-	inline Vec3 radomInUnitSphere() {
+	inline Vec3 randomInUnitSphere() {
 		while (true) {
 			const auto p = randomVec(-1,1);
 			if (p.dot(p) < 1)
 				return p;
 		}
+	}
+
+	inline Vec3 randomUnitVector() {
+		return randomInUnitSphere().normalized();
+	}
+
+	inline Vec3 randomInUnitHemiSphere(const Vec3& normal) {
+		const auto tmp = randomInUnitSphere();
+		if (tmp.dot(normal) > 0)
+			return tmp;
+		else
+			return -tmp;
 	}
 
 	// constants

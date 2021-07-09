@@ -1,19 +1,23 @@
 #pragma once
 
 #include "hittable.h"
+#include <memory>
 
 namespace rayUtilities {
+	class Material;
+
 	class Sphere : public Hittable {
 	public: 
 		Sphere() {}
-		Sphere(const Point3& c, const double r) : 
-			center(c), radius(r) {}
+		Sphere(const Point3& c, const double r, const std::shared_ptr<Material>& m) : 
+			center(c), radius(r), matPtr(m){}
 
 		virtual bool hit(const Ray& r, const double t_min, const double t_max, HitRecord& rec) const override;
 
 	private:
 		Point3 center;
 		double radius;
+		std::shared_ptr<Material> matPtr;
 	};
 
 	bool Sphere::hit(const Ray& r, const double t_min, const double t_max, HitRecord& rec) const {
@@ -41,6 +45,7 @@ namespace rayUtilities {
 		rec.t = t;
 		rec.p = r.at(t);
 		Vec3 normal = (rec.p - center)/radius;
+		rec.matPtr = matPtr;
 		rec.setFaceNormal(r, normal);
 		return true;
 	}
