@@ -4,6 +4,7 @@
 namespace rayUtilities {
 	class HittableList;
 	class Camera;
+	class Material;
 }
 
 class rayTracer {
@@ -21,6 +22,7 @@ private:
 
 	rayUtilities::HittableList* world;
 	rayUtilities::Camera* camera;
+	rayUtilities::Material** materials;
 
 	T* fb;
 };

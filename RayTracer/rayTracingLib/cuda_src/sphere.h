@@ -9,6 +9,7 @@ namespace rayUtilities {
 		__device__ Sphere(const Point3& c, const float r) : center(c), radius(r) {}
 
 		__device__ virtual bool hit(const Ray& r, const float t_min, const float t_max, HitRecord& rec) const override;
+		using Hittable::mPtr;
 
 	private:
 		Point3 center;
@@ -42,6 +43,7 @@ namespace rayUtilities {
 
 		Vec3 normal = (rec.p - center)/radius;
 		rec.setFaceNormal(r, normal);
+		rec.mPtr = mPtr;
 		return true;
 	}
 }

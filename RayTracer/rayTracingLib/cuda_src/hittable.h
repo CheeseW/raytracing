@@ -2,11 +2,14 @@
 
 #include "ray.h"
 namespace rayUtilities {
+	class Material;
+
 	struct HitRecord {
 		Point3 p;
 		Vec3 normal;
 		float t;
 		bool frontFace;
+		Material* mPtr;	
 
 		__device__ inline void setFaceNormal(const Ray& r, const Vec3& outwardNormal) {
 			frontFace = r.direction().dot(outwardNormal) <= 0;
@@ -17,6 +20,6 @@ namespace rayUtilities {
 	class Hittable {
 	public:
 		__device__ virtual bool hit(const Ray& r, const float tMin, const float tMax, HitRecord& rec) const = 0;
-
+		Material* mPtr;
 	};
 }

@@ -26,12 +26,18 @@ namespace {
             curand_init(1984, index, 0, &rand_state[index]);
     }
 
-    __global__ void create_world(rayUtilities::Hittable** d_list, rayUtilities::HittableList* d_world) {
+    __global__ void create_world(rayUtilities::Hittable** d_list, rayUtilities::Material** d_m, rayUtilities::HittableList* d_world) {
         using namespace rayUtilities;
-
         if (threadIdx.x == 0 && blockIdx.x == 0) {
-            *(d_list) = new Sphere(Vec3(0, 0, -1), 0.5);
-            *(d_list + 1) = new Sphere(Vec3(0, -100.5, -1), 100);
+            d_m[0] = new Lambertian(Color(.7, .3, .3));
+            d_m[1] = new Lambertian(Color(.8, .8, 0));
+
+            d_list[0] = new Sphere(Vec3(0, 0, -1), 0.5);
+            d_list[0]->mPtr = d_m[0];
+
+            d_list[1] = new Sphere(Vec3(0, -100.5, -1), 100);
+            d_list[1]->mPtr = d_m[1];
+
             d_world = new(d_world) HittableList(d_list, 2);
         }
     }
@@ -51,13 +57,15 @@ namespace {
         }
     }
 
-    __global__ void destroy_world(rayUtilities::Hittable** d_list, rayUtilities::HittableList* d_world) {
+    __global__ void destroy_world(rayUtilities::Hittable** d_list, rayUtilities::Material** d_m, rayUtilities::HittableList* d_world) {
         using namespace rayUtilities;
 
         if (threadIdx.x == 0 && blockIdx.x == 0) {
-            delete* (d_list);
-            delete* (d_list + 1);
             d_world -> ~HittableList();
+            delete d_list[0];
+            delete d_list[1];
+            delete d_m[0];
+            delete d_m[1];
         }
     }
 
@@ -76,7 +84,7 @@ namespace {
                 const float v = (float(j) + curand_uniform(&localState)) / max_y;
                 // const Ray ray(origin, lowerLeft + u * horizontal + v * vertical - origin);
                 Ray r = camera->getRay(i, max_y - j, localState);
-                pixelColor += Materials::ray_color(r, world, maxDepth, localState);
+                pixelColor += ray_color(r, world, maxDepth, localState);
             }
             pixelColor /= float(nSamples);
 
@@ -114,9 +122,11 @@ rayTracer::rayTracer(int width, int height) :
 
     // world
     checkCudaErrors(cudaMalloc((void**)&::d_list, 2 * sizeof(Hittable*)));
-    checkCudaErrors(cudaMalloc((void**)&world, 2 * sizeof(HittableList)));
+    checkCudaErrors(cudaMalloc((void**)&world, sizeof(HittableList)));
+    checkCudaErrors(cudaMalloc((void**)&materials, 2 * sizeof(Material*)));
 
-    ::create_world << <1, 1 >> > (::d_list, world);
+
+    ::create_world << <1, 1 >> > (::d_list, materials, world);
     checkCudaErrors(cudaGetLastError());
     checkCudaErrors(cudaDeviceSynchronize());
 
@@ -154,10 +164,12 @@ void rayTracer::render(int nSamples, int maxDepth) {
 rayTracer::~rayTracer() {
     checkCudaErrors(cudaFree(fb));
     ::destroy_camera << <1, 1 >> > (camera);
-    ::destroy_world << <1, 1 >> > (::d_list, world);
+    ::destroy_world << <1, 1 >> > (::d_list, materials, world);
     checkCudaErrors(cudaGetLastError());
     checkCudaErrors(cudaDeviceSynchronize());
 
+
+    checkCudaErrors(cudaFree(materials));
     checkCudaErrors(cudaFree(world));
     checkCudaErrors(cudaFree(::d_list));
     checkCudaErrors(cudaFree(::d_randState));

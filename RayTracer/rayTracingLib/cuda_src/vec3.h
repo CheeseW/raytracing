@@ -29,6 +29,13 @@ namespace rayUtilities {
 			return *this;
 		}
 
+		__host__ __device__ Vec3& operator*=(const Vec3& v) {
+			e[0] *= v[0];
+			e[1] *= v[1];
+			e[2] *= v[2];
+			return *this;
+		}
+
 		__host__ __device__ Vec3& operator/=(const float t) {
 			return *this *= 1 / t;
 		}
@@ -43,6 +50,10 @@ namespace rayUtilities {
 
 		__host__ __device__ inline Vec3 operator*(float t) const {
 			return Vec3(e[0] * t, e[1] * t, e[2] * t);
+		}
+
+		__host__ __device__ inline Vec3 operator*(Vec3& v) const {
+			return Vec3(e[0] * v[0], e[1] * v[1], e[2] * v[2]);
 		}
 
 		__host__ __device__ inline Vec3 operator/(float t) const {
