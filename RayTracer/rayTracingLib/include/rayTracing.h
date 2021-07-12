@@ -16,6 +16,7 @@ public:
 	void write_image(std::string fileName) const;
 	const T* get_framebuffer() const;
 	~rayTracer();
+	// int getNumberMaterials() const { return nMat; }
 private:
 	int image_width;
 	int image_height;
@@ -23,6 +24,7 @@ private:
 	rayUtilities::HittableList* world;
 	rayUtilities::Camera* camera;
 	rayUtilities::Material** materials;
+	// int nMat;
 
 	T* fb;
 };

@@ -1,0 +1,26 @@
+﻿{
+  "configurations": [
+    {
+      "name": "x64-Release",
+      "generator": "Visual Studio 16 2019 Win64",
+      "configurationType": "Release",
+      "buildRoot": "${projectDir}\\out\\build\\${name}",
+      "installRoot": "${projectDir}\\out\\install\\${name}",
+      "cmakeCommandArgs": "-DGLFW_INCLUDE_DIR=C:/Users/CheeseW/Documents/vsExtLibraries/glfw-3.3.2.bin.WIN64/include -DGLFW_LIBRARY=C:/Users/CheeseW/Documents/vsExtLibraries/glfw-3.3.2.bin.WIN64/lib-vc2019/glfw3dll.lib -DGLEW_VERBOSE=ON -DGLEW_INCLUDE_DIR=C:/Users/CheeseW/Documents/vsExtLibraries/glew-2.1.0/include -DGLEW_SHARED_LIBRARY_RELEASE=C:/Users/CheeseW/Documents/vsExtLibraries/glew-2.1.0/lib/Release/x64/glew32.lib -DEIGEN3_INCLUDE_DIR=C:\\Users\\CheeseW\\Documents\\vsExtLibraries\\eigen-3.3.9",
+      "buildCommandArgs": "",
+      "ctestCommandArgs": "",
+      "inheritEnvironments": [ "msvc_x64_x64" ]
+    },
+    {
+      "name": "x64-Debug",
+      "generator": "Visual Studio 16 2019 Win64",
+      "configurationType": "Debug",
+      "buildRoot": "${projectDir}\\out\\build\\${name}",
+      "installRoot": "${projectDir}\\out\\install\\${name}",
+      "cmakeCommandArgs": "-DGLFW_INCLUDE_DIR=C:/Users/CheeseW/Documents/vsExtLibraries/glfw-3.3.2.bin.WIN64/include -DGLFW_LIBRARY=C:/Users/CheeseW/Documents/vsExtLibraries/glfw-3.3.2.bin.WIN64/lib-vc2019/glfw3dll.lib -DGLEW_VERBOSE=ON -DGLEW_INCLUDE_DIR=C:/Users/CheeseW/Documents/vsExtLibraries/glew-2.1.0/include -DGLEW_SHARED_LIBRARY_RELEASE=C:/Users/CheeseW/Documents/vsExtLibraries/glew-2.1.0/lib/Release/x64/glew32.lib -DEIGEN3_INCLUDE_DIR=C:\\Users\\CheeseW\\Documents\\vsExtLibraries\\eigen-3.3.9",
+      "buildCommandArgs": "",
+      "ctestCommandArgs": "",
+      "inheritEnvironments": [ "msvc_x64_x64" ]
+    }
+  ]
+}

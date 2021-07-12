@@ -16,12 +16,16 @@ namespace rayUtilities {
 		return randomVec(randState) * (max - min) + min * allOne;
 	}
 
-	__device__ inline Vec3 radomInUnitSphere(curandState& randState) {
+	__device__ inline Vec3 randomInUnitSphere(curandState& randState) {
 		while (true) {
 			const auto p = randomVec(-1, 1, randState);
 			if (p.dot(p) < 1)
 				return p;
 		}
+	}
+
+	__device__ inline Vec3 randomUnitVector(curandState& randState) {
+		return randomInUnitSphere(randState).normalized();
 	}
 
 	__device__ inline float randomFloat(curandState& randState) {

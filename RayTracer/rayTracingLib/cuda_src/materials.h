@@ -4,6 +4,10 @@
 
 namespace rayUtilities {
 
+	__device__ Vec3 reflect(const Vec3& v, const Vec3& n) {
+		return v - 2 * n.dot(v) * n;
+	}
+
 	class Material {
 	public:
 		__device__ virtual bool scatter(const Ray& r_in, const HitRecord& rec, Color& attenuation, Ray& scattered, curandState& randState) const = 0;
@@ -14,12 +18,26 @@ namespace rayUtilities {
 		__device__ Lambertian(const Color& a): albedo(a) {}
 		__device__ virtual bool scatter(const Ray& r_in, const HitRecord& rec, Color& attenuation, Ray& scattered, curandState& randState) const override {
 			attenuation = albedo;
-			scattered = Ray(rec.p, rec.normal + radomInUnitSphere(randState));
+			scattered = Ray(rec.p, rec.normal + randomUnitVector(randState));
 			return true;
 		}
 	private:
 		Color albedo;
 	};
+
+	class Metal : public Material {
+	public: 
+			__device__ Metal(const Color& a):albedo(a) {}
+			__device__ virtual bool scatter(const Ray& r_in, const HitRecord& rec, Color& attenuation, Ray& scattered, curandState& randState) const override {
+				attenuation = albedo;
+				scattered = Ray(rec.p, reflect(r_in.direction().normalized(), rec.normal));
+				return true;
+			}
+	private:
+		Color albedo;
+	};
+
+	
 	__device__ rayUtilities::Color ray_color(const rayUtilities::Ray& ray, const rayUtilities::Hittable* world, const int maxIter, curandState& randState) {
 		using namespace rayUtilities;
 		Color attenRate(.8,.8,.8);

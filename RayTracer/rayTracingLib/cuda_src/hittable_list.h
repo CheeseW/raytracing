@@ -12,9 +12,9 @@ namespace rayUtilities {
 		__device__ HittableList(Hittable** obj, const int n) : objects(obj), size(n) {}
 
 		__device__ virtual bool hit(const Ray& r, const float tMin, const float tMax, HitRecord& rec) const override;
+		// __device__ int getSize() { return size; } const
 
 	private:
-		// std::vector<std::shared_ptr<Hittable>> objects;
 		Hittable** objects;
 		int size;
 	};

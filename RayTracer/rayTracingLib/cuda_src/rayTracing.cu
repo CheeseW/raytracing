@@ -29,16 +29,42 @@ namespace {
     __global__ void create_world(rayUtilities::Hittable** d_list, rayUtilities::Material** d_m, rayUtilities::HittableList* d_world) {
         using namespace rayUtilities;
         if (threadIdx.x == 0 && blockIdx.x == 0) {
-            d_m[0] = new Lambertian(Color(.7, .3, .3));
-            d_m[1] = new Lambertian(Color(.8, .8, 0));
+            d_m[0] = new Lambertian(Color(.8, .8, 0)); //ground
+            d_m[1] = new Lambertian(Color(.7, .3, .3)); //center
+            d_m[2] = new Metal(Color(.8, .8, .8)); //left
+            d_m[3] = new Metal(Color(.8, .6, .2)); //right
 
-            d_list[0] = new Sphere(Vec3(0, 0, -1), 0.5);
+            int count = 0;
+
+            d_list[0] = new Sphere(Point3(0, -100.5f, -1), 100); count++;
             d_list[0]->mPtr = d_m[0];
 
-            d_list[1] = new Sphere(Vec3(0, -100.5, -1), 100);
+            d_list[1] = new Sphere(Point3(0, 0, -1), 0.5f); count++;
             d_list[1]->mPtr = d_m[1];
 
-            d_world = new(d_world) HittableList(d_list, 2);
+            d_list[2] = new Sphere(Point3{ 1, 0,-1 }, .5f); count++;
+            d_list[2]->mPtr = d_m[2];
+
+
+            d_list[3] = new Sphere(Point3{ -1, 0,-1 }, .5f); count++;
+            d_list[3]->mPtr = d_m[3];
+
+        
+            d_world = new(d_world) HittableList(d_list, count);
+        }
+    }
+
+    __global__ void destroy_world(rayUtilities::Hittable** d_list, rayUtilities::Material** d_m, rayUtilities::HittableList* d_world) {
+        using namespace rayUtilities;
+
+        if (threadIdx.x == 0 && blockIdx.x == 0) {
+            d_world -> ~HittableList();
+            const int count = 4;
+            for (int i = 0; i < count; i++)
+                delete d_m[i];
+
+            for (int i=0; i<count;i++) 
+                delete d_list[i];
         }
     }
 
@@ -54,18 +80,6 @@ namespace {
         using namespace rayUtilities;
         if (threadIdx.x == 0 && blockIdx.x == 0) {
             d_camera -> ~Camera();
-        }
-    }
-
-    __global__ void destroy_world(rayUtilities::Hittable** d_list, rayUtilities::Material** d_m, rayUtilities::HittableList* d_world) {
-        using namespace rayUtilities;
-
-        if (threadIdx.x == 0 && blockIdx.x == 0) {
-            d_world -> ~HittableList();
-            delete d_list[0];
-            delete d_list[1];
-            delete d_m[0];
-            delete d_m[1];
         }
     }
 
@@ -121,9 +135,9 @@ rayTracer::rayTracer(int width, int height) :
     checkCudaErrors(cudaDeviceSynchronize());
 
     // world
-    checkCudaErrors(cudaMalloc((void**)&::d_list, 2 * sizeof(Hittable*)));
+    checkCudaErrors(cudaMalloc((void**)&::d_list, 4 * sizeof(Hittable*)));
     checkCudaErrors(cudaMalloc((void**)&world, sizeof(HittableList)));
-    checkCudaErrors(cudaMalloc((void**)&materials, 2 * sizeof(Material*)));
+    checkCudaErrors(cudaMalloc((void**)&materials, 4 * sizeof(Material*)));
 
 
     ::create_world << <1, 1 >> > (::d_list, materials, world);
