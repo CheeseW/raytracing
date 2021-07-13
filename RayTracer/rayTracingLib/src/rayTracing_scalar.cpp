@@ -25,8 +25,8 @@ int rayTracer::create_world()
 	using namespace rayUtilities;
 	auto ground = std::make_shared<Lambertian>(Color(.8, .8, 0));
 	auto center = std::make_shared<Lambertian>(Color(.7, .3, .3));
-	auto left = std::make_shared<Metal>(Color(.8, .8, .8));
-	auto right = std::make_shared<Metal>(Color(.8, .6, .2));
+	auto left = std::make_shared<Metal>(Color(.8, .8, .8), .3);
+	auto right = std::make_shared<Dielectric>(1.6);
 
 	int count = 0;
 

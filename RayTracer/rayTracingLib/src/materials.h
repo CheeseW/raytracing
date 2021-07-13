@@ -10,17 +10,35 @@ namespace rayUtilities {
 		return v - 2 * v.dot(n) * n;
 	}
 
+	Vec3 refract(const Vec3& v, const Vec3& n, const double etai_over_etao) {
+		Vec3 R_perp = etai_over_etao * (v - (v.dot(n) * n));
+		return R_perp - std::sqrt(std::abs(1 - R_perp.dot(R_perp))) * n;
+	}
+
 	class Material {
 	public:
 		virtual bool scatter(const Ray& r_in, const HitRecord& rec, Color& attenuation, Ray& scattered) const = 0;
 	};
 
-	class Metal :public Material {
+	class Dielectric : public Material {
 	public:
-		Metal(const Color& a) :albedo(a) {}
+		Dielectric(const double ri) : refractionIdx(ri) {}
 
 		virtual bool scatter(const Ray& r_in, const HitRecord& rec, Color& attenuation, Ray& scattered) const override {
-			rayUtilities::Vec3 reflected = reflect(r_in.direction(), rec.normal.normalized());
+			scattered = Ray(rec.p, refract(r_in.direction().normalized(), rec.normal, rec.frontFace?1/refractionIdx: refractionIdx));
+			attenuation = Color{ 1,1,1 };
+			return true;
+		}
+	private:
+		double refractionIdx;
+	};
+
+	class Metal :public Material {
+	public:
+		Metal(const Color& a, const float f) :albedo(a), fuzz(f<1?f:1) {}
+
+		virtual bool scatter(const Ray& r_in, const HitRecord& rec, Color& attenuation, Ray& scattered) const override {
+			rayUtilities::Vec3 reflected = reflect(r_in.direction(), rec.normal.normalized()) + fuzz*randomInUnitSphere();
 			double thresh = 1e-10;
 			scattered = Ray(rec.p, reflected);
 			attenuation = albedo;
@@ -28,6 +46,7 @@ namespace rayUtilities {
 		}
 	private:
 		Color albedo;
+		double fuzz;
 	};
 
 	class Lambertian :public Material {
@@ -75,7 +94,8 @@ namespace Materials{
 			Ray scattered;
 			Color attenuation;
 			if (rec.matPtr->scatter(r, rec, attenuation, scattered))
-				 return attenuation.array() * ray_color(scattered, world, depth - 1).array();
+				return attenuation.array() * ray_color(scattered, world, depth - 1).array();
+			else return Color(0, 0, 0);
 		}
 		else return ray_color<skybox>(r, world, depth);
 	}
