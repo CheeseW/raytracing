@@ -20,7 +20,7 @@ int main(int argc, char* argv[]) {
 	std::cout << "Rendering took " << time_span.count() << " s" << std::endl;
 
 	t1 = std::chrono::steady_clock::now();
-	rt.write_image("image.ppm");
+	rt.write_image("image.bmp");
 	t2 = std::chrono::steady_clock::now();
 	time_span = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
 	std::cout << "File i/o took " << time_span.count() << " s" << std::endl;
