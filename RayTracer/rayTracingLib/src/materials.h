@@ -12,7 +12,9 @@ namespace rayUtilities {
 
 	Vec3 refract(const Vec3& v, const Vec3& n, const double etai_over_etao) {
 		Vec3 R_perp = etai_over_etao * (v - (v.dot(n) * n));
-		return R_perp - std::sqrt(std::abs(1 - R_perp.dot(R_perp))) * n;
+		const double delta = 1 - R_perp.dot(R_perp);
+		assert(delta >= 0);
+		return R_perp - std::sqrt(delta) * n;
 	}
 
 	class Material {
@@ -25,11 +27,31 @@ namespace rayUtilities {
 		Dielectric(const double ri) : refractionIdx(ri) {}
 
 		virtual bool scatter(const Ray& r_in, const HitRecord& rec, Color& attenuation, Ray& scattered) const override {
-			scattered = Ray(rec.p, refract(r_in.direction().normalized(), rec.normal, rec.frontFace?1/refractionIdx: refractionIdx));
+			const double refract_ratio = rec.frontFace ? 1 / refractionIdx : refractionIdx;
+			const Vec3 dirIn = r_in.direction().normalized();
+			double cosine = dirIn.dot(-rec.normal);
+			bool canRefract = 1 / refract_ratio > (1 - cosine * cosine);
+			/*
+			if (!canRefract|| reflectance(cosine, refract_ratio) > randomDouble())
+				scattered = Ray(rec.p, reflect(dirIn, rec.normal));
+			else
+			*/
+			if (canRefract)
+				scattered = Ray(rec.p, refract(dirIn, rec.normal, refract_ratio));
+			else
+				scattered = Ray(rec.p, reflect(dirIn, rec.normal));
+
+
 			attenuation = Color{ 1,1,1 };
 			return true;
 		}
 	private:
+
+		static double reflectance(const double cosine, const double rIndex) {
+			double r0 = (1 - rIndex) / (1 + rIndex);
+			r0 = r0 * r0;
+			return r0 + (1 - r0) * std::pow(1 - cosine, 5);
+		}
 		double refractionIdx;
 	};
 
